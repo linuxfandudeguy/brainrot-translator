@@ -1,0 +1,152 @@
+---
+import 'bootstrap/dist/css/bootstrap.min.css';
+---
+
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Brainrot Translator 🧠</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%2210 0 100 100%22><text y=%22.90em%22 font-size=%2290%22>🧠</text></svg>"
+    />
+    <style>
+      .container {
+        max-width: 600px;
+        margin: 0 auto;
+        padding-top: 50px;
+        padding-bottom: 60px;
+        min-height: 100vh;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .btn {
+        width: 100%;
+      }
+
+      footer {
+        text-align: center;
+        margin-top: auto;
+        padding: 10px 0;
+        background-color: #f8f9fa;
+        font-size: 12px;
+      }
+
+      footer a {
+        text-decoration: none;
+        color: #007bff;
+        font-weight: bold;
+      }
+
+      footer a:hover {
+        color: #0056b3;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Brainrot Translator 🧠</h1>
+
+      <div class="form-group">
+        <label for="sentenceInput">Enter a sentence (Slang to English)</label>
+        <input
+          type="text"
+          id="sentenceInput"
+          class="form-control"
+          placeholder="Type a sentence here"
+        />
+      </div>
+
+      <button class="btn btn-primary" id="translateBtn">Translate!</button>
+
+      <div id="result" class="mt-3" style="display: none;">
+        <h3>Translated Sentence:</h3>
+        <p id="translatedText"></p>
+      </div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", async () => {
+        // Initialize the dictionary variable
+        let dictionary: Record<string, string> = {};
+
+        // Fetch the dictionary once when the page loads
+        async function loadDictionary() {
+          try {
+            const response = await fetch("/dictionary.json");
+            if (!response.ok) throw new Error("Failed to fetch dictionary.");
+            dictionary = await response.json();
+          } catch (error) {
+            console.error("Error loading dictionary:", error);
+          }
+        }
+
+        // Load the dictionary
+        await loadDictionary();
+
+        // Safely get DOM elements
+        const sentenceInput = document.getElementById("sentenceInput") as HTMLInputElement | null;
+        const translateBtn = document.getElementById("translateBtn") as HTMLButtonElement | null;
+        const resultDiv = document.getElementById("result") as HTMLDivElement | null;
+        const translatedTextP = document.getElementById("translatedText") as HTMLParagraphElement | null;
+
+        // Ensure all elements exist before proceeding
+        if (!sentenceInput || !translateBtn || !resultDiv || !translatedTextP) {
+          console.error("Some required elements are missing in the DOM.");
+          return;
+        }
+
+        // Translation function (Slang to English)
+        function translate() {
+          const inputValue = sentenceInput!.value; // Non-null assertion
+          if (!inputValue) {
+            console.error("Sentence input is empty.");
+            return;
+          }
+
+          const sentence = inputValue.toLowerCase();
+          let translatedText = sentence;
+
+          // Sort dictionary keys by length (longest first) for phrase replacement
+          const sortedKeys = Object.keys(dictionary).sort((a, b) => b.length - a.length);
+
+          sortedKeys.forEach((slang) => {
+            const slangRegex = new RegExp(`\\b${escapeRegExp(slang)}\\b`, "gi");
+            if (dictionary[slang]) {
+              translatedText = translatedText.replace(slangRegex, dictionary[slang]);
+            }
+          });
+
+          // Convert the translated text to sentence case
+          translatedText = toSentenceCase(translatedText);
+
+          // Update the UI
+          translatedTextP!.textContent = translatedText; // Non-null assertion
+          resultDiv!.style.display = "block"; // Non-null assertion
+        }
+
+        // Escape special characters for regex
+        function escapeRegExp(str: string): string {
+          return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        }
+
+        // Convert text to sentence case
+        function toSentenceCase(str: string): string {
+          if (!str) return str;
+          return str.charAt(0).toUpperCase() + str.slice(1).toLowerCase();
+        }
+
+        // Bind the translate function to the button click event
+        translateBtn!.addEventListener("click", translate); // Non-null assertion
+      });
+    </script>
+  </body>
+</html>
